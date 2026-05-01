@@ -1,0 +1,5 @@
+/* PromptForge content styles — minimal footprint */
+
+#pf-toast {
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
