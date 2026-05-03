@@ -8,24 +8,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --border: #1e1e2e;
-      --accent: #7c3aed;
-      --accent2: #06b6d4;
-      --accent3: #f59e0b;
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --success: #10b981;
-      --error: #ef4444;
-      --glow: rgba(124, 58, 237, 0.3);
+      --bg:       #07070f;
+      --bg2:      #0c0c18;
+      --surface:  #10101c;
+      --surface2: #15152a;
+      --border:   #1c1c30;
+      --border2:  #252545;
+      --accent:   #7c3aed;
+      --accent2:  #06b6d4;
+      --accent3:  #f59e0b;
+      --accent4:  #a78bfa;
+      --text:     #e2e8f0;
+      --text2:    #94a3b8;
+      --muted:    #4a5568;
+      --success:  #10b981;
+      --error:    #ef4444;
+      --glow:     rgba(124,58,237,0.22);
+      --glow2:    rgba(6,182,212,0.18);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       width: 440px;
-      min-height: 560px;
+      min-height: 540px;
       background: var(--bg);
       color: var(--text);
       font-family: 'Syne', sans-serif;
@@ -34,172 +40,134 @@
 
     /* ── HEADER ── */
     .header {
-      background: linear-gradient(135deg, #0f0f1a 0%, #1a0f2e 100%);
+      background: linear-gradient(135deg, #0e0e1e 0%, #180e2e 60%, #0e1520 100%);
       border-bottom: 1px solid var(--border);
-      padding: 14px 18px 12px;
+      padding: 16px 20px 14px;
       display: flex; align-items: center; justify-content: space-between;
       position: relative; overflow: hidden;
     }
     .header::before {
-      content: ''; position: absolute;
-      top: -30px; right: -30px;
-      width: 100px; height: 100px;
-      background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+      content: '';
+      position: absolute; top: -40px; right: -20px;
+      width: 140px; height: 140px;
+      background: radial-gradient(circle, var(--glow) 0%, transparent 65%);
       pointer-events: none;
     }
-    .logo { display: flex; align-items: center; gap: 8px; }
+    .header::after {
+      content: '';
+      position: absolute; bottom: -30px; left: 30px;
+      width: 80px; height: 80px;
+      background: radial-gradient(circle, var(--glow2) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
     .logo-icon {
-      width: 28px; height: 28px;
+      width: 32px; height: 32px;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      font-size: 15px;
+      box-shadow: 0 0 16px rgba(124,58,237,0.5);
     }
     .logo-text {
-      font-size: 16px; font-weight: 800;
-      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      font-size: 17px; font-weight: 800;
+      background: linear-gradient(90deg, #c4b5fd, var(--accent2));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
-    .header-right { display: flex; align-items: center; gap: 8px; }
     .version-badge {
       font-family: 'Space Mono', monospace; font-size: 9px;
-      color: var(--muted); background: var(--surface);
-      border: 1px solid var(--border); border-radius: 4px;
-      padding: 2px 6px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 3px 8px;
     }
-    .settings-btn {
-      background: none; border: 1px solid var(--border);
-      color: var(--muted); cursor: pointer;
-      width: 28px; height: 28px; border-radius: 6px;
-      font-size: 14px; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .settings-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── SETTINGS PANEL ── */
-    .settings-panel {
-      display: none; padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      background: #0d0d18;
-      animation: slideDown 0.2s ease;
-    }
-    .settings-panel.open { display: block; }
-    @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-
-    .settings-title {
-      font-size: 11px; font-weight: 600;
-      color: var(--muted); text-transform: uppercase;
-      letter-spacing: 1px; margin-bottom: 10px;
-    }
-    .settings-row { margin-bottom: 8px; }
-    .api-key-row { display: flex; gap: 8px; }
-    .api-key-row input { font-family: 'Space Mono', monospace; font-size: 11px; }
-    .save-btn {
-      padding: 0 14px;
-      background: var(--accent); border: none; border-radius: 8px;
-      color: white; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
-      cursor: pointer; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0;
-    }
-    .save-btn:hover { opacity: 0.85; }
-    .custom-schema-field { margin-top: 10px; }
-    .custom-schema-field textarea { font-family: 'Space Mono', monospace; font-size: 11px; min-height: 60px; }
 
     /* ── FORMAT TABS ── */
     .format-tabs {
-      display: flex; padding: 10px 18px 0; gap: 4px;
-      border-bottom: 1px solid var(--border);
+      display: flex; padding: 0 20px;
       background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      gap: 0;
     }
     .tab {
-      padding: 7px 10px; font-size: 10px; font-weight: 600;
+      padding: 11px 20px; font-size: 10px; font-weight: 700;
       font-family: 'Space Mono', monospace;
-      border: 1px solid transparent; border-bottom: none;
-      border-radius: 6px 6px 0 0; cursor: pointer;
-      color: var(--muted); background: none; transition: all 0.2s;
-      letter-spacing: 0.5px; text-transform: uppercase;
+      border: none; border-bottom: 2px solid transparent;
+      cursor: pointer; color: var(--muted); background: none;
+      transition: all 0.2s; letter-spacing: 0.8px; text-transform: uppercase;
+      position: relative;
     }
-    .tab:hover { color: var(--text); border-color: var(--border); }
-    .tab.active {
-      color: var(--text); border-color: var(--border);
-      background: var(--bg); position: relative;
+    .tab:hover { color: var(--text2); }
+    .tab[data-format="ollama"].active {
+      color: #a78bfa;
+      border-bottom-color: #a78bfa;
     }
-    .tab.active::after {
-      content: ''; position: absolute;
-      bottom: -1px; left: 0; right: 0; height: 1px;
-      background: var(--bg);
+    .tab[data-format="custom"].active {
+      color: var(--accent3);
+      border-bottom-color: var(--accent3);
     }
-    .tab[data-format="claude"].active    { color: var(--accent2); }
-    .tab[data-format="openai"].active    { color: var(--success); }
-    .tab[data-format="openrouter"].active{ color: #f97316; }
-    .tab[data-format="ollama"].active    { color: #a78bfa; }
-    .tab[data-format="custom"].active    { color: var(--accent3); }
 
     /* ── KEY HINT BAR ── */
     .key-hint {
-      padding: 6px 18px; font-size: 10px;
+      padding: 7px 20px; font-size: 10px;
       font-family: 'Space Mono', monospace;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
     }
-    .hint-claude   { background: rgba(6,182,212,0.07);  color: #67e8f9; }
-    .hint-openai   { background: rgba(16,185,129,0.07); color: #6ee7b7; }
-    .hint-or       { background: rgba(249,115,22,0.07); color: #fdba74; }
-    .hint-ollama   { background: rgba(167,139,250,0.07);color: #c4b5fd; }
-    .hint-custom   { background: rgba(245,158,11,0.07); color: #fcd34d; }
+    .key-hint::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .hint-ollama {
+      background: rgba(167,139,250,0.06);
+      color: #a78bfa;
+      border-bottom: 1px solid rgba(167,139,250,0.12);
+    }
+    .hint-ollama::before { background: #a78bfa; box-shadow: 0 0 5px #a78bfa; }
+    .hint-custom {
+      background: rgba(245,158,11,0.06);
+      color: #fbbf24;
+      border-bottom: 1px solid rgba(245,158,11,0.12);
+    }
+    .hint-custom::before { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
 
     /* ── FORM ELEMENTS ── */
     label {
-      font-size: 11px; font-weight: 600;
+      font-size: 10px; font-weight: 700;
       color: var(--muted); text-transform: uppercase;
-      letter-spacing: 1px; margin-bottom: 5px; display: block;
+      letter-spacing: 1.2px; margin-bottom: 6px; display: block;
     }
-    textarea, input, select {
+    textarea, input[type="text"], input[type="password"], input[type="number"], select {
       width: 100%;
-      background: var(--surface); border: 1px solid var(--border);
+      background: var(--surface2);
+      border: 1px solid var(--border);
       border-radius: 8px; color: var(--text);
       font-family: 'Syne', sans-serif; font-size: 13px;
-      padding: 10px 12px; outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      padding: 9px 11px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
       resize: none;
     }
     textarea:focus, input:focus, select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+      border-color: var(--accent4);
+      background: rgba(167,139,250,0.04);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
     }
-    textarea { min-height: 80px; line-height: 1.5; }
+    textarea { min-height: 78px; line-height: 1.55; }
+    textarea::placeholder, input::placeholder { color: var(--muted); }
     select option { background: #1a1a2e; }
-
-    /* Free model badge in selects */
-    option.free-model { color: #6ee7b7; }
 
     .field-group { display: flex; flex-direction: column; }
     .fields-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* ── TOGGLE ── */
-    .toggle-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0;
-    }
-    .toggle-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-    .toggle { position: relative; width: 36px; height: 20px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute; inset: 0;
-      background: var(--border); border-radius: 20px; cursor: pointer; transition: 0.2s;
-    }
-    .toggle-slider:before {
-      content: ''; position: absolute;
-      width: 14px; height: 14px; left: 3px; top: 3px;
-      background: white; border-radius: 50%; transition: 0.2s;
-    }
-    .toggle input:checked + .toggle-slider { background: var(--accent); }
-    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
-
     /* ── MAIN CONTENT ── */
-    .main { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+    .main { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 
     .format-panel { display: none; }
-    .format-panel.active { display: block; }
+    .format-panel.active {
+      display: block;
+      background: rgba(255,255,255,0.015);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
 
     .hint {
       font-size: 10px; color: var(--muted);
@@ -207,111 +175,233 @@
       margin-top: 4px; line-height: 1.5;
     }
 
-    /* Free label on OR models */
-    .free-tag {
-      display: inline-block; font-size: 9px; font-family: 'Space Mono', monospace;
-      background: rgba(16,185,129,0.15); color: var(--success);
-      border: 1px solid rgba(16,185,129,0.3); border-radius: 3px;
-      padding: 1px 4px; margin-left: 4px; vertical-align: middle;
+    /* ── PROMPT TOOLBAR ── */
+    .prompt-toolbar { display: flex; gap: 6px; }
+    .builder-toggle-btn {
+      flex: 1; padding: 6px 10px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 6px; color: var(--muted);
+      font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; text-align: center;
     }
+    .builder-toggle-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .builder-toggle-btn.active {
+      border-color: var(--accent2); color: var(--accent2);
+      background: rgba(6,182,212,0.07);
+    }
+
+    /* ── JSON BUILDER ── */
+    .json-builder {
+      display: none;
+      border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      background: var(--surface);
+    }
+    .json-builder.open { display: block; }
+    .builder-section { padding: 11px 13px; border-bottom: 1px solid var(--border); }
+    .builder-section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .builder-section-title {
+      font-size: 10px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 1.1px; font-family: 'Space Mono', monospace;
+    }
+    .add-row-btn {
+      padding: 3px 9px;
+      background: rgba(16,185,129,0.07);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 5px; color: var(--success);
+      font-size: 10px; font-family: 'Space Mono', monospace;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .add-row-btn:hover { background: rgba(16,185,129,0.14); }
+    .field-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .field-row:last-child { margin-bottom: 0; }
+    .field-row input { min-height: unset; padding: 5px 8px; font-size: 11px; flex: 1; min-width: 0; }
+    .field-row select { width: 82px; padding: 5px 6px; font-size: 11px; flex-shrink: 0; min-height: unset; }
+    .remove-row-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 16px; padding: 0 2px;
+      transition: color 0.15s; flex-shrink: 0; line-height: 1;
+    }
+    .remove-row-btn:hover { color: var(--error); }
+    .builder-footer { padding: 9px 13px; background: rgba(0,0,0,0.2); }
+    .build-json-btn {
+      width: 100%; padding: 8px;
+      background: linear-gradient(135deg, var(--accent2), #0284c7);
+      border: none; border-radius: 7px; color: white;
+      font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.15s, transform 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .build-json-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ── PROVIDER SUB-PANELS ── */
+    .provider-panel { margin-top: 10px; }
+    .api-key-row { display: flex; gap: 8px; }
+    .api-key-row input { font-family: 'Space Mono', monospace; font-size: 11px; }
+    .save-btn {
+      padding: 0 14px;
+      background: linear-gradient(135deg, var(--accent), #6d28d9);
+      border: none; border-radius: 8px;
+      color: white; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: opacity 0.2s, transform 0.15s;
+      flex-shrink: 0; letter-spacing: 0.5px;
+    }
+    .save-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    optgroup { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+
+    /* ── ACTION BUTTON GROUP ── */
+    .action-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .meta-prompt-side {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .meta-style-select {
+      padding: 5px 8px; min-height: unset;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 7px; color: var(--text2);
+      font-family: 'Space Mono', monospace; font-size: 9px;
+      cursor: pointer; width: 100%;
+    }
+    .meta-style-select:focus { border-color: var(--accent4); box-shadow: none; }
+    .meta-prompt-btn {
+      flex: 1;
+      padding: 0 14px;
+      background: rgba(167,139,250,0.08);
+      border: 1px solid rgba(167,139,250,0.35);
+      border-radius: 8px; color: #c4b5fd;
+      font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .meta-prompt-btn:hover {
+      background: rgba(167,139,250,0.15);
+      border-color: var(--accent4);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124,58,237,0.2);
+    }
+    .meta-prompt-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── GENERATE BUTTON ── */
     .generate-btn {
-      width: 100%; padding: 12px;
-      background: linear-gradient(135deg, var(--accent) 0%, #6d28d9 100%);
-      border: none; border-radius: 8px;
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--accent) 0%, #5b21b6 100%);
+      border: none; border-radius: 9px;
       color: white; font-family: 'Syne', sans-serif;
-      font-size: 14px; font-weight: 700; cursor: pointer;
-      letter-spacing: 0.5px; transition: all 0.2s;
+      font-size: 14px; font-weight: 800; cursor: pointer;
+      letter-spacing: 0.4px; transition: all 0.2s;
       position: relative; overflow: hidden;
     }
     .generate-btn::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
       opacity: 0; transition: opacity 0.2s;
     }
     .generate-btn:hover::before { opacity: 1; }
-    .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--glow); }
+    .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,0.4); }
     .generate-btn:active { transform: translateY(0); }
-    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .generate-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── OUTPUT ── */
     .output-section { display: none; }
     .output-section.visible { display: block; }
 
-    .output-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+    .output-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
     }
-    .output-actions { display: flex; gap: 6px; }
+    .output-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .output-label {
+      font-size: 10px; font-weight: 700; color: var(--text2);
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .output-label-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 6px var(--success);
+      flex-shrink: 0;
+    }
+    .output-label-dot.meta { background: #a78bfa; box-shadow: 0 0 6px #a78bfa; }
+    .output-actions { display: flex; gap: 5px; }
     .action-btn {
-      padding: 5px 10px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 6px; color: var(--muted);
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border2); border-radius: 5px; color: var(--text2);
       font-family: 'Space Mono', monospace; font-size: 10px; cursor: pointer; transition: all 0.15s;
     }
-    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .action-btn.inject-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.08); }
+    .action-btn.inject-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(6,182,212,0.08); }
+    .action-btn.use-btn:hover { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.08); }
     .action-btn.copied { border-color: var(--success); color: var(--success); }
 
     .output-box {
-      background: #070710; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
-      font-family: 'Space Mono', monospace; font-size: 11px; line-height: 1.6;
-      color: #a5b4fc; max-height: 200px; overflow-y: auto;
+      background: #050510;
+      padding: 13px 14px;
+      font-family: 'Space Mono', monospace; font-size: 11px; line-height: 1.65;
+      color: #a5b4fc; max-height: 210px; overflow-y: auto;
       white-space: pre-wrap; word-break: break-all;
     }
+    .output-box.meta-mode { color: #d4bbff; }
     .output-box::-webkit-scrollbar { width: 4px; }
     .output-box::-webkit-scrollbar-track { background: transparent; }
-    .output-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .output-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
     /* ── ERROR ── */
     .error-msg {
-      padding: 10px 12px;
-      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      padding: 10px 13px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
       border-radius: 8px; font-size: 12px; color: #fca5a5; display: none;
+      line-height: 1.4;
     }
     .error-msg.visible { display: block; }
 
     /* ── STATUS BAR ── */
     .status-bar {
-      padding: 8px 18px; background: var(--surface);
+      padding: 8px 20px;
+      background: var(--surface);
       border-top: 1px solid var(--border);
       font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 7px;
     }
     .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
     .status-dot.ready   { background: var(--success); box-shadow: 0 0 6px var(--success); }
     .status-dot.loading { background: var(--accent3); animation: pulse 1s infinite; }
-    .status-dot.error   { background: var(--error); }
+    .status-dot.error   { background: var(--error); box-shadow: 0 0 6px var(--error); }
 
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-    /* ── OR FREE MODEL OPTGROUP ── */
-    optgroup { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
-
-    /* ── OLLAMA OUTPUT ── */
-    .ollama-output-section { display: none; }
-    .ollama-output-section.visible { display: block; }
-
-    .prompt-text-box {
-      background: #070710; border: 1px solid #2d4a3e;
-      border-radius: 8px; padding: 12px;
-      font-family: 'Syne', sans-serif; font-size: 13px;
-      line-height: 1.7; color: #86efac;
-      max-height: 160px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-word;
+    /* ── CUSTOM CONTEXT MENU ── */
+    .custom-ctx-menu {
+      position: fixed; z-index: 9999;
+      background: var(--surface2);
+      border: 1px solid var(--border2); border-radius: 9px;
+      padding: 4px; min-width: 172px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.7); display: none;
     }
-    .prompt-text-box::-webkit-scrollbar { width: 4px; }
-    .prompt-text-box::-webkit-scrollbar-thumb { background: #2d4a3e; border-radius: 2px; }
-
-    .api-json-details { margin-top: 8px; }
-    .api-json-summary {
-      font-size: 10px; font-family: 'Space Mono', monospace;
-      color: var(--muted); cursor: pointer; padding: 4px 0;
-      list-style: none; user-select: none;
+    .custom-ctx-menu.visible { display: block; }
+    .ctx-item {
+      padding: 7px 11px; font-size: 11px; font-family: 'Space Mono', monospace;
+      color: var(--text); cursor: pointer; border-radius: 6px; transition: background 0.1s;
     }
-    .api-json-summary:hover { color: var(--text); }
-    .api-json-summary::marker, .api-json-summary::-webkit-details-marker { display: none; }
-    .api-json-summary::before { content: '▶ '; font-size: 8px; }
-    details[open] .api-json-summary::before { content: '▼ '; }
+    .ctx-item:hover { background: rgba(124,58,237,0.18); color: #c4b5fd; }
+    .ctx-item.danger:hover { background: rgba(239,68,68,0.14); color: #fca5a5; }
+    .ctx-sep { height: 1px; background: var(--border); margin: 3px 5px; }
   </style>
 </head>
 <body>
@@ -322,46 +412,17 @@
     <div class="logo-icon">⚡</div>
     <span class="logo-text">PromptForge</span>
   </div>
-  <div class="header-right">
-    <span class="version-badge">v2.0</span>
-    <button class="settings-btn" id="settingsToggle" title="API Settings">⚙</button>
-  </div>
-</div>
-
-<!-- SETTINGS PANEL -->
-<div class="settings-panel" id="settingsPanel">
-  <div class="settings-title">⚙ Configuration</div>
-  <div class="settings-row">
-    <label>Anthropic API Key <span style="color:#475569;font-weight:400;text-transform:none;">(for Claude tab)</span></label>
-    <div class="api-key-row">
-      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" />
-      <button class="save-btn" id="saveApiKey">Save</button>
-    </div>
-  </div>
-  <div class="settings-row">
-    <label>OpenRouter API Key <span style="color:#475569;font-weight:400;text-transform:none;">(for OpenRouter tab)</span></label>
-    <div class="api-key-row">
-      <input type="password" id="orApiKeyInput" placeholder="sk-or-v1-…" />
-      <button class="save-btn" id="saveOrApiKey">Save</button>
-    </div>
-  </div>
-  <div class="custom-schema-field" id="customSchemaField" style="display:none;">
-    <label>Custom JSON Schema Template</label>
-    <textarea id="customSchemaInput" placeholder='{"role":"user","content":"{{prompt}}","metadata":{}}'></textarea>
-  </div>
+  <span class="version-badge">v2.1</span>
 </div>
 
 <!-- FORMAT TABS -->
 <div class="format-tabs">
-  <button class="tab active" data-format="claude">Claude</button>
-  <button class="tab" data-format="openai">OpenAI</button>
-  <button class="tab" data-format="openrouter">OpenRouter</button>
   <button class="tab" data-format="ollama">Ollama</button>
-  <button class="tab" data-format="custom">Custom</button>
+  <button class="tab active" data-format="custom">Custom</button>
 </div>
 
 <!-- KEY HINT BAR -->
-<div class="key-hint hint-claude" id="keyHint">🔑 Requires Anthropic API key</div>
+<div class="key-hint hint-custom" id="keyHint">Select a provider and enter its API key below</div>
 
 <!-- MAIN -->
 <div class="main">
@@ -369,278 +430,247 @@
   <!-- Natural language input -->
   <div class="field-group">
     <label>Natural Language Prompt</label>
-    <textarea id="nlPrompt" placeholder="e.g. Write a system prompt for a helpful coding assistant that is concise, uses Python examples, and avoids jargon…"></textarea>
+    <textarea id="nlPrompt" placeholder="e.g. Summarize a news article and extract key entities…"></textarea>
   </div>
 
-  <!-- CLAUDE PANEL -->
-  <div class="format-panel active" id="panel-claude">
-    <div class="fields-row">
-      <div class="field-group">
-        <label>Model</label>
-        <select id="claude-model">
-          <option value="claude-sonnet-4-20250514">claude-sonnet-4</option>
-          <option value="claude-opus-4-20250514">claude-opus-4</option>
-          <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
-          <option value="claude-3-5-sonnet-20241022">claude-3.5-sonnet</option>
-          <option value="claude-3-5-haiku-20241022">claude-3.5-haiku</option>
-        </select>
-      </div>
-      <div class="field-group">
-        <label>Max Tokens</label>
-        <input type="number" id="claude-tokens" value="1024" min="1" max="8192" />
-      </div>
-    </div>
-    <div class="field-group" style="margin-top:10px;">
-      <label>System Prompt (optional)</label>
-      <textarea id="claude-system" placeholder="You are a helpful assistant…" style="min-height:52px;"></textarea>
-    </div>
-    <div class="fields-row" style="margin-top:10px;">
-      <div class="field-group">
-        <label>Temperature</label>
-        <input type="number" id="claude-temp" value="0.7" min="0" max="1" step="0.1" />
-      </div>
-      <div class="field-group">
-        <label>Role</label>
-        <select id="claude-role">
-          <option value="user">user</option>
-          <option value="assistant">assistant</option>
-        </select>
-      </div>
-    </div>
+  <!-- Prompt toolbar -->
+  <div class="prompt-toolbar">
+    <button class="builder-toggle-btn" id="builderToggle">{ } JSON Builder</button>
   </div>
 
-  <!-- OPENAI PANEL -->
-  <div class="format-panel" id="panel-openai">
-    <p class="hint" style="margin-bottom:8px;">⚡ Builds JSON locally — instant, no API key needed</p>
-    <div class="fields-row">
-      <div class="field-group">
-        <label>Model</label>
-        <select id="openai-model">
-          <option value="gpt-4o">gpt-4o</option>
-          <option value="gpt-4o-mini">gpt-4o-mini</option>
-          <option value="gpt-4-turbo">gpt-4-turbo</option>
-          <option value="gpt-4.1">gpt-4.1</option>
-          <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-          <option value="o1">o1</option>
-          <option value="o3">o3</option>
-          <option value="o3-mini">o3-mini</option>
-          <option value="o4-mini">o4-mini</option>
-        </select>
+  <!-- JSON Builder -->
+  <div class="json-builder" id="jsonBuilder">
+    <div class="builder-section">
+      <div class="builder-section-header">
+        <span class="builder-section-title">Input Attributes</span>
+        <button class="add-row-btn" id="addInputRowBtn">+ Add Field</button>
       </div>
-      <div class="field-group">
-        <label>Max Tokens</label>
-        <input type="number" id="openai-tokens" value="1024" min="1" max="16384" />
+      <div id="inputRows"></div>
+    </div>
+    <div class="builder-section">
+      <div class="builder-section-header">
+        <span class="builder-section-title">Output Format</span>
+        <button class="add-row-btn" id="addOutputRowBtn">+ Add Field</button>
       </div>
+      <div id="outputRows"></div>
     </div>
-    <div class="field-group" style="margin-top:10px;">
-      <label>System Message (optional)</label>
-      <textarea id="openai-system" placeholder="You are a helpful assistant…" style="min-height:52px;"></textarea>
+    <div class="builder-footer">
+      <button class="build-json-btn" id="buildJsonBtn">⚡ Build with AI</button>
     </div>
-    <div class="fields-row" style="margin-top:10px;">
-      <div class="field-group">
-        <label>Temperature</label>
-        <input type="number" id="openai-temp" value="0.7" min="0" max="2" step="0.1" />
-      </div>
-      <div class="field-group">
-        <label>Top P</label>
-        <input type="number" id="openai-topp" value="1" min="0" max="1" step="0.05" />
-      </div>
-    </div>
-  </div>
-
-  <!-- OPENROUTER PANEL -->
-  <div class="format-panel" id="panel-openrouter">
-    <div class="field-group">
-      <label>Model <span style="color:#475569;font-weight:400;text-transform:none;font-size:10px;">— also used as generation backbone</span></label>
-      <select id="or-model">
-        <optgroup label="── FREE MODELS ──────────────────">
-          <option value="meta-llama/llama-3.3-70b-instruct:free">⭐ Llama 3.3 70B Instruct [FREE]</option>
-          <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B Instruct [FREE]</option>
-          <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B Instruct [FREE]</option>
-          <option value="google/gemma-3-27b-it:free">⭐ Gemma 3 27B IT [FREE]</option>
-          <option value="google/gemma-3-12b-it:free">Gemma 3 12B IT [FREE]</option>
-          <option value="google/gemma-3-1b-it:free">Gemma 3 1B IT [FREE]</option>
-          <option value="deepseek/deepseek-r1:free">⭐ DeepSeek R1 [FREE]</option>
-          <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 Chat [FREE]</option>
-          <option value="microsoft/phi-4:free">Microsoft Phi-4 [FREE]</option>
-          <option value="qwen/qwen3-8b:free">Qwen 3 8B [FREE]</option>
-          <option value="mistralai/mistral-7b-instruct:free">Mistral 7B Instruct [FREE]</option>
-          <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 3 Llama 405B [FREE]</option>
-        </optgroup>
-        <optgroup label="── PAID MODELS ──────────────────">
-          <option value="anthropic/claude-sonnet-4">Claude Sonnet 4 (via OR)</option>
-          <option value="anthropic/claude-opus-4">Claude Opus 4 (via OR)</option>
-          <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5 (via OR)</option>
-          <option value="openai/gpt-4o">GPT-4o (via OR)</option>
-          <option value="openai/gpt-4o-mini">GPT-4o Mini (via OR)</option>
-          <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
-          <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
-          <option value="meta-llama/llama-3.1-405b-instruct">Llama 3.1 405B Instruct</option>
-          <option value="mistralai/mixtral-8x7b-instruct">Mixtral 8x7B Instruct</option>
-          <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B</option>
-          <option value="cohere/command-r-plus-08-2024">Cohere Command R+</option>
-          <option value="deepseek/deepseek-r1">DeepSeek R1 (full)</option>
-        </optgroup>
-      </select>
-    </div>
-    <div class="field-group" style="margin-top:8px;">
-      <label>Custom Model ID (overrides above)</label>
-      <input type="text" id="or-custom-model" placeholder="e.g. cohere/command-r-plus (chat/instruct models only)" />
-      <p class="hint">⚠ Chat/instruct models only — models with "embed" in the name won't work</p>
-    </div>
-    <div class="fields-row" style="margin-top:8px;">
-      <div class="field-group">
-        <label>Max Tokens</label>
-        <input type="number" id="or-tokens" value="1024" min="1" max="32768" />
-      </div>
-      <div class="field-group">
-        <label>Temperature</label>
-        <input type="number" id="or-temp" value="0.7" min="0" max="2" step="0.1" />
-      </div>
-    </div>
-    <div class="field-group" style="margin-top:8px;">
-      <label>System Message (optional)</label>
-      <textarea id="or-system" placeholder="You are a helpful assistant…" style="min-height:48px;"></textarea>
-    </div>
-    <div class="fields-row" style="margin-top:8px;">
-      <div class="field-group">
-        <label>HTTP-Referer (optional)</label>
-        <input type="text" id="or-referer" placeholder="https://yoursite.com" />
-      </div>
-      <div class="field-group">
-        <label>X-Title (optional)</label>
-        <input type="text" id="or-title" placeholder="My App" />
-      </div>
-    </div>
-    <p class="hint">💡 Uses OpenRouter key only — Anthropic key NOT required. Get key at openrouter.ai/keys</p>
   </div>
 
   <!-- OLLAMA PANEL -->
   <div class="format-panel" id="panel-ollama">
-    <p class="hint" style="margin-bottom:8px;">🦙 Uses local Ollama to generate structured task JSON — no API key, no cloud</p>
+    <p class="hint" style="margin-bottom:10px;">🦙 Runs locally — no API key, no cloud</p>
     <div class="field-group">
       <label>Model Name</label>
       <input type="text" id="ollama-model" list="ollama-models" placeholder="e.g. llama3.2, mistral, phi4" value="llama3.2" />
       <datalist id="ollama-models">
-        <option value="llama3.2">
-        <option value="llama3.2:3b">
-        <option value="llama3.2:1b">
-        <option value="llama3.1">
-        <option value="llama3.1:8b">
-        <option value="llama3.1:70b">
-        <option value="mistral">
-        <option value="mistral:7b">
-        <option value="phi4">
-        <option value="phi4:mini">
-        <option value="phi3">
-        <option value="phi3:mini">
-        <option value="gemma3">
-        <option value="gemma3:12b">
-        <option value="gemma2">
-        <option value="gemma2:9b">
-        <option value="deepseek-r1">
-        <option value="deepseek-r1:7b">
-        <option value="deepseek-r1:14b">
-        <option value="deepseek-r1:32b">
-        <option value="deepseek-coder-v2">
+        <option value="llama3.2"><option value="llama3.2:3b">
+        <option value="llama3.1"><option value="llama3.1:8b">
+        <option value="mistral"><option value="phi4"><option value="phi4:mini">
+        <option value="gemma3"><option value="gemma3:12b">
+        <option value="deepseek-r1"><option value="deepseek-r1:7b">
+        <option value="qwen2.5"><option value="qwen2.5:7b">
         <option value="codellama">
-        <option value="codellama:7b">
-        <option value="codellama:13b">
-        <option value="qwen2.5">
-        <option value="qwen2.5:7b">
-        <option value="qwen2.5:14b">
-        <option value="qwen2.5-coder">
-        <option value="llava">
-        <option value="llava:13b">
-        <option value="nomic-embed-text">
-        <option value="mxbai-embed-large">
       </datalist>
     </div>
-    <div class="field-group" style="margin-top:8px;">
-      <label>Ollama Host</label>
-      <input type="text" id="ollama-host" value="http://localhost:11434" />
-    </div>
-    <div class="fields-row" style="margin-top:8px;">
+    <div class="fields-row" style="margin-top:9px;">
       <div class="field-group">
-        <label>API Endpoint</label>
-        <select id="ollama-endpoint">
-          <option value="/api/generate">/api/generate</option>
-          <option value="/api/chat">/api/chat</option>
-        </select>
+        <label>Ollama Host</label>
+        <input type="text" id="ollama-host" value="http://localhost:11434" />
       </div>
-      <div class="field-group">
-        <label>Context Window</label>
-        <input type="number" id="ollama-ctx" value="4096" min="512" step="512" />
-      </div>
-    </div>
-    <div class="field-group" style="margin-top:8px;">
-      <label>System Prompt (optional)</label>
-      <textarea id="ollama-system" placeholder="You are a helpful assistant…" style="min-height:48px;"></textarea>
-    </div>
-    <div class="fields-row" style="margin-top:8px;">
       <div class="field-group">
         <label>Temperature</label>
         <input type="number" id="ollama-temp" value="0.8" min="0" max="2" step="0.1" />
       </div>
-      <div class="field-group">
-        <label>Top P</label>
-        <input type="number" id="ollama-topp" value="0.9" min="0" max="1" step="0.05" />
-      </div>
     </div>
-    <div class="toggle-row" style="margin-top:6px;">
-      <span class="toggle-label">Stream</span>
-      <label class="toggle">
-        <input type="checkbox" id="ollama-stream" />
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
-    <p class="hint">💡 Start Ollama first: <code style="color:#a78bfa">ollama run llama3.2</code></p>
+    <p class="hint" style="margin-top:8px;">💡 Start first: <code style="color:#a78bfa;font-family:'Space Mono',monospace;">ollama run llama3.2</code></p>
   </div>
 
-  <!-- CUSTOM PANEL -->
-  <div class="format-panel" id="panel-custom">
+  <!-- CUSTOM PANEL (Anthropic / OpenAI / OpenRouter) -->
+  <div class="format-panel active" id="panel-custom">
+
     <div class="field-group">
-      <label>Schema Template</label>
-      <select id="custom-template">
-        <option value="generic">Generic REST body</option>
-        <option value="langchain">LangChain / LangGraph</option>
-        <option value="autogen">AutoGen Agent</option>
-        <option value="schema">Use saved schema (set in ⚙)</option>
+      <label>Provider</label>
+      <select id="custom-provider">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI</option>
+        <option value="openrouter">OpenRouter</option>
       </select>
     </div>
-    <div class="field-group" style="margin-top:10px;">
-      <label>Extra Context / Tags (optional)</label>
-      <input type="text" id="custom-tags" placeholder="task:summarize, lang:en, tone:formal" />
+
+    <!-- Anthropic sub-panel -->
+    <div class="provider-panel" id="cpanel-anthropic">
+      <div class="field-group">
+        <label>API Key</label>
+        <div class="api-key-row">
+          <input type="password" id="custom-anthropic-key" placeholder="sk-ant-api03-…" />
+          <button class="save-btn" id="saveAnthropicKey">Save</button>
+        </div>
+      </div>
+      <div class="fields-row" style="margin-top:9px;">
+        <div class="field-group">
+          <label>Model</label>
+          <select id="custom-claude-model">
+            <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+            <option value="claude-sonnet-4-20250514">claude-sonnet-4</option>
+            <option value="claude-opus-4-20250514">claude-opus-4</option>
+            <option value="claude-3-5-sonnet-20241022">claude-3.5-sonnet</option>
+            <option value="claude-3-5-haiku-20241022">claude-3.5-haiku</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Max Tokens</label>
+          <input type="number" id="custom-claude-tokens" value="1024" min="1" max="8192" />
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:9px;">
+        <label>Temperature</label>
+        <input type="number" id="custom-claude-temp" value="0.7" min="0" max="1" step="0.1" />
+      </div>
     </div>
-    <p class="hint" style="margin-top:6px;">💡 Uses Anthropic key if available, else OpenRouter free model</p>
+
+    <!-- OpenAI sub-panel -->
+    <div class="provider-panel" id="cpanel-openai" style="display:none;">
+      <div class="field-group">
+        <label>API Key</label>
+        <div class="api-key-row">
+          <input type="password" id="custom-openai-key" placeholder="sk-…" />
+          <button class="save-btn" id="saveOpenaiKey">Save</button>
+        </div>
+      </div>
+      <div class="fields-row" style="margin-top:9px;">
+        <div class="field-group">
+          <label>Model</label>
+          <select id="custom-openai-model">
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4o-mini">gpt-4o-mini</option>
+            <option value="gpt-4.1">gpt-4.1</option>
+            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            <option value="o3">o3</option>
+            <option value="o3-mini">o3-mini</option>
+            <option value="o4-mini">o4-mini</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Max Tokens</label>
+          <input type="number" id="custom-openai-tokens" value="1024" min="1" max="16384" />
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:9px;">
+        <label>Temperature</label>
+        <input type="number" id="custom-openai-temp" value="0.7" min="0" max="2" step="0.1" />
+      </div>
+    </div>
+
+    <!-- OpenRouter sub-panel -->
+    <div class="provider-panel" id="cpanel-openrouter" style="display:none;">
+      <div class="field-group">
+        <label>API Key</label>
+        <div class="api-key-row">
+          <input type="password" id="custom-or-key" placeholder="sk-or-v1-…" />
+          <button class="save-btn" id="saveOrKey">Save</button>
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:9px;">
+        <label>Model</label>
+        <select id="custom-or-model">
+          <optgroup label="── FREE ──">
+            <option value="meta-llama/llama-3.3-70b-instruct:free">⭐ Llama 3.3 70B [FREE]</option>
+            <option value="google/gemma-3-27b-it:free">⭐ Gemma 3 27B [FREE]</option>
+            <option value="deepseek/deepseek-r1:free">⭐ DeepSeek R1 [FREE]</option>
+            <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 [FREE]</option>
+            <option value="microsoft/phi-4:free">Phi-4 [FREE]</option>
+            <option value="qwen/qwen3-8b:free">Qwen 3 8B [FREE]</option>
+            <option value="mistralai/mistral-7b-instruct:free">Mistral 7B [FREE]</option>
+          </optgroup>
+          <optgroup label="── PAID ──">
+            <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+            <option value="anthropic/claude-opus-4">Claude Opus 4</option>
+            <option value="openai/gpt-4o">GPT-4o</option>
+            <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+            <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+            <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fields-row" style="margin-top:9px;">
+        <div class="field-group">
+          <label>Max Tokens</label>
+          <input type="number" id="custom-or-tokens" value="1024" min="1" max="32768" />
+        </div>
+        <div class="field-group">
+          <label>Temperature</label>
+          <input type="number" id="custom-or-temp" value="0.7" min="0" max="2" step="0.1" />
+        </div>
+      </div>
+      <p class="hint" style="margin-top:7px;">💡 Free models auto-retry on failure</p>
+    </div>
+
+    <!-- Schema template -->
+    <div class="field-group" style="margin-top:10px;">
+      <label>Schema Template</label>
+      <select id="custom-template">
+        <option value="generic">Generic</option>
+        <option value="langchain">LangChain / LangGraph</option>
+        <option value="autogen">AutoGen Agent</option>
+      </select>
+    </div>
+
   </div>
 
   <!-- Error -->
   <div class="error-msg" id="errorMsg"></div>
 
-  <!-- Generate -->
-  <button class="generate-btn" id="generateBtn">⚡ Generate Structured JSON</button>
+  <!-- Action Row: Meta Prompt + Generate side by side -->
+  <div class="action-row">
+    <div class="meta-prompt-side">
+      <select id="metaStyle" class="meta-style-select">
+        <option value="improve">✨ Improve &amp; Clarify</option>
+        <option value="role">🎭 Role &amp; Persona</option>
+        <option value="cot">🧠 Chain of Thought</option>
+        <option value="constraints">📋 Add Constraints</option>
+        <option value="system">⚙ System Prompt</option>
+        <option value="fewshot">📝 Few-Shot</option>
+      </select>
+      <button class="meta-prompt-btn" id="metaPromptBtn">✨ Meta Prompt</button>
+    </div>
+    <button class="generate-btn" id="generateBtn">⚡ Generate Structured JSON</button>
+  </div>
 
   <!-- Output -->
   <div class="output-section" id="outputSection">
-    <div class="output-header">
-      <label style="margin:0;">Structured Output</label>
-      <div class="output-actions">
-        <button class="action-btn inject-btn" id="injectBtn" title="Inject into active page textarea">⬇ Inject</button>
-        <button class="action-btn" id="copyBtn">⎘ Copy</button>
+    <div class="output-card">
+      <div class="output-card-header">
+        <div class="output-label">
+          <span class="output-label-dot" id="outputDot"></span>
+          <span id="outputLabel">Structured Output</span>
+        </div>
+        <div class="output-actions">
+          <button class="action-btn use-btn" id="useAsPromptBtn" style="display:none;">→ Use as Prompt</button>
+          <button class="action-btn inject-btn" id="injectBtn">⬇ Inject</button>
+          <button class="action-btn" id="copyBtn">⎘ Copy</button>
+        </div>
       </div>
+      <div class="output-box" id="outputBox"></div>
     </div>
-    <div class="output-box" id="outputBox"></div>
   </div>
 
+</div>
 
+<!-- Custom Context Menu -->
+<div class="custom-ctx-menu" id="ctxMenu">
+  <div class="ctx-item" id="ctxSubmit">⚡ Submit selection</div>
+  <div class="ctx-item" id="ctxEnhance">✨ Enhance selection</div>
+  <div class="ctx-sep" id="ctxSep"></div>
+  <div class="ctx-item danger" id="ctxClear">✕ Clear prompt</div>
 </div>
 
 <!-- STATUS BAR -->
 <div class="status-bar">
   <div class="status-dot ready" id="statusDot"></div>
-  <span id="statusText">Ready — select a format and enter your prompt</span>
+  <span id="statusText">Ready — enter your prompt and generate</span>
 </div>
 
 <script src="popup.js"></script>

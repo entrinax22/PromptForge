@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PromptForge",
-  "version": "2.0.0",
-  "description": "Convert natural language into structured JSON for Claude, OpenAI, OpenRouter (free models!), Ollama, and custom schemas.",
+  "version": "2.1.0",
+  "description": "Convert natural language into structured JSON prompts using Ollama, Claude, OpenAI, or OpenRouter.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -12,6 +12,7 @@
   "host_permissions": [
     "https://api.anthropic.com/*",
     "https://openrouter.ai/*",
+    "https://api.openai.com/*",
     "http://localhost:11434/*"
   ],
   "action": {

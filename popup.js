@@ -1,52 +1,59 @@
 'use strict';
 
 // ── State ───────────────────────────────────────────────────────
-let currentFormat = 'claude';
+let currentFormat = 'custom';
 let anthropicKey  = '';
 let openrouterKey = '';
-let customSchema  = '';
+let openaiKey     = '';
 
-// LRU cache — last 10 generations
 const genCache = new Map();
-
 const $ = id => document.getElementById(id);
 
 // ── Constants ───────────────────────────────────────────────────
 const CLAUDE_BACKBONE  = 'claude-haiku-4-5-20251001';
 const OR_FREE_BACKBONE = 'meta-llama/llama-3.3-70b-instruct:free';
+const OR_FALLBACKS = [
+  'google/gemma-3-27b-it:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+];
 
-// Core system prompt — ALL formats output task-based JSON
 const SYSTEM_PROMPT =
   'You are PromptForge, a prompt engineering assistant. ' +
   'Convert a natural language task description into a structured task JSON object that works as a ready-to-use AI prompt. ' +
   'The JSON must have three parts:\n' +
-  '1. "task": a concise snake_case task name (e.g. "generate_facebook_post", "summarize_article", "extract_contact_info")\n' +
-  '2. One or more descriptively-named input fields — choose the field name based on what the task needs ' +
-  '   (e.g. "input_text", "article_text", "code_snippet", "topic", "query", "product_name"). ' +
-  '   Fill each field with REALISTIC example content that illustrates exactly what kind of data goes there — ' +
-  '   not generic placeholders like "[your text here]". Make the example feel real and on-topic.\n' +
-  '3. "output_format": an object where each key is a meaningful output field name and the value is its type. ' +
-  '   Use "string", "number", "boolean", ["string"], or nested objects. ' +
-  '   Choose fields that make sense for the task (do not just use "result" and "summary" for everything).\n' +
-  'Output ONLY the JSON object — no markdown, no code fences, no explanation, no extra text.';
+  '1. "task": a concise snake_case task name\n' +
+  '2. One or more descriptively-named input fields with REALISTIC example content (not placeholders).\n' +
+  '3. "output_format": an object where each key is a meaningful output field name and the value is its type ' +
+  '("string", "number", "boolean", ["string"], or nested objects).\n' +
+  'Output ONLY the JSON object — no markdown, no code fences, no explanation.';
+
+const TASK_INSTRUCTION =
+  'Generate a structured task JSON. Include a snake_case "task" name, input fields with realistic sample data, ' +
+  'and an "output_format" with task-specific field names and types. Return ONLY the JSON object.';
 
 // ── Init ────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const stored = await chrome.storage.local.get([
-    'apiKey', 'orApiKey', 'customSchema', 'lastFormat', 'contextText', 'contextTrigger'
+    'apiKey', 'orApiKey', 'openaiKey', 'lastFormat', 'contextText', 'contextTrigger'
   ]);
 
-  if (stored.apiKey)       { anthropicKey  = stored.apiKey;       $('apiKeyInput').value   = stored.apiKey; }
-  if (stored.orApiKey)     { openrouterKey = stored.orApiKey;     $('orApiKeyInput').value  = stored.orApiKey; }
-  if (stored.customSchema) { customSchema  = stored.customSchema; $('customSchemaInput').value = stored.customSchema; }
-  if (stored.lastFormat)   switchFormat(stored.lastFormat);
+  if (stored.apiKey)    { anthropicKey  = stored.apiKey;    $('custom-anthropic-key').value = stored.apiKey; }
+  if (stored.orApiKey)  { openrouterKey = stored.orApiKey;  $('custom-or-key').value        = stored.orApiKey; }
+  if (stored.openaiKey) { openaiKey     = stored.openaiKey; $('custom-openai-key').value    = stored.openaiKey; }
+
+  const validFormats = ['ollama', 'custom'];
+  if (stored.lastFormat && validFormats.includes(stored.lastFormat)) {
+    switchFormat(stored.lastFormat);
+  }
 
   if (stored.contextText && stored.contextTrigger && (Date.now() - stored.contextTrigger < 30000)) {
     $('nlPrompt').value = stored.contextText;
     await chrome.storage.local.remove(['contextText', 'contextTrigger']);
   }
 
-  setStatus('ready', 'Ready — select a format and enter your prompt');
+  setStatus('ready', 'Ready — enter your prompt and generate');
 });
 
 // ── Tab switching ───────────────────────────────────────────────
@@ -58,7 +65,6 @@ function switchFormat(format) {
   currentFormat = format;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.format === format));
   document.querySelectorAll('.format-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${format}`));
-  $('customSchemaField').style.display = format === 'custom' ? 'block' : 'none';
   updateKeyHint(format);
   chrome.storage.local.set({ lastFormat: format });
   hideOutput();
@@ -66,46 +72,54 @@ function switchFormat(format) {
 }
 
 function updateKeyHint(format) {
-  const map = {
-    claude:      { icon: '🔑', text: 'Requires Anthropic API key', cls: 'hint-claude' },
-    openai:      { icon: '⚡', text: 'No API key needed — builds JSON instantly, locally', cls: 'hint-openai' },
-    openrouter:  { icon: '🔑', text: 'Requires OpenRouter key only — Anthropic key NOT needed', cls: 'hint-or' },
-    ollama:      { icon: '🦙', text: 'No API key needed — uses local Ollama to generate task JSON', cls: 'hint-ollama' },
-    custom:      { icon: '🔑', text: 'Requires Anthropic or OpenRouter key (uses best available)', cls: 'hint-custom' },
-  };
-  const h = map[format];
-  if (!h) return;
   const el = $('keyHint');
-  el.className = 'key-hint ' + h.cls;
-  el.textContent = `${h.icon} ${h.text}`;
+  if (format === 'ollama') {
+    el.className = 'key-hint hint-ollama';
+    el.textContent = '🦙 No API key needed — uses your local Ollama instance';
+  } else {
+    const provider = $('custom-provider')?.value || 'anthropic';
+    const hints = {
+      anthropic:  '🔑 Requires Anthropic API key',
+      openai:     '🔑 Requires OpenAI API key',
+      openrouter: '🔑 Requires OpenRouter API key — free models available',
+    };
+    el.className = 'key-hint hint-custom';
+    el.textContent = hints[provider] || hints.anthropic;
+  }
 }
 
-// ── Settings ────────────────────────────────────────────────────
-$('settingsToggle').addEventListener('click', () => $('settingsPanel').classList.toggle('open'));
+// ── Provider switcher (Custom tab) ─────────────────────────────
+$('custom-provider').addEventListener('change', () => {
+  const p = $('custom-provider').value;
+  ['anthropic', 'openai', 'openrouter'].forEach(id => {
+    $(`cpanel-${id}`).style.display = id === p ? '' : 'none';
+  });
+  updateKeyHint('custom');
+});
 
-$('saveApiKey').addEventListener('click', async () => {
-  const key = $('apiKeyInput').value.trim();
+// ── Key save buttons ────────────────────────────────────────────
+$('saveAnthropicKey').addEventListener('click', async () => {
+  const key = $('custom-anthropic-key').value.trim();
   if (!key) return;
   anthropicKey = key;
   await chrome.storage.local.set({ apiKey: key });
-  flash($('saveApiKey'), '✓ Saved', 'Save');
-  setStatus('ready', 'Anthropic API key saved');
+  flash($('saveAnthropicKey'), '✓ Saved', 'Save');
 });
 
-$('saveOrApiKey').addEventListener('click', async () => {
-  const key    = $('orApiKeyInput').value.trim();
-  const schema = $('customSchemaInput').value.trim();
-  if (key) {
-    openrouterKey = key;
-    customSchema  = schema;
-    await chrome.storage.local.set({ orApiKey: key, customSchema: schema });
-    flash($('saveOrApiKey'), '✓ Saved', 'Save');
-    setStatus('ready', 'OpenRouter API key saved');
-  } else if (schema) {
-    customSchema = schema;
-    await chrome.storage.local.set({ customSchema: schema });
-    flash($('saveOrApiKey'), '✓ Saved', 'Save');
-  }
+$('saveOpenaiKey').addEventListener('click', async () => {
+  const key = $('custom-openai-key').value.trim();
+  if (!key) return;
+  openaiKey = key;
+  await chrome.storage.local.set({ openaiKey: key });
+  flash($('saveOpenaiKey'), '✓ Saved', 'Save');
+});
+
+$('saveOrKey').addEventListener('click', async () => {
+  const key = $('custom-or-key').value.trim();
+  if (!key) return;
+  openrouterKey = key;
+  await chrome.storage.local.set({ orApiKey: key });
+  flash($('saveOrKey'), '✓ Saved', 'Save');
 });
 
 // ── Generate ────────────────────────────────────────────────────
@@ -118,19 +132,20 @@ async function generate() {
   const prompt = $('nlPrompt').value.trim();
   if (!prompt) return showError('Please enter a prompt.');
 
-  // Per-format key validation — the bug was: openrouter was requiring anthropicKey!
-  if (currentFormat === 'claude' && !anthropicKey)
-    return showError('Anthropic API key required. Click ⚙ to add it.');
-  if (currentFormat === 'openrouter' && !openrouterKey)
-    return showError('OpenRouter API key required. Click ⚙ to add it.');
-  if (currentFormat === 'custom' && !anthropicKey && !openrouterKey)
-    return showError('Add an Anthropic or OpenRouter key in ⚙ Settings.');
-  // openai needs no key — builds JSON locally. ollama calls your local Ollama instance.
+  if (currentFormat === 'custom') {
+    const provider = $('custom-provider').value;
+    const aKey = $('custom-anthropic-key').value.trim() || anthropicKey;
+    const oKey = $('custom-openai-key').value.trim()    || openaiKey;
+    const rKey = $('custom-or-key').value.trim()        || openrouterKey;
+    if (provider === 'anthropic'  && !aKey) return showError('Enter your Anthropic API key above.');
+    if (provider === 'openai'     && !oKey) return showError('Enter your OpenAI API key above.');
+    if (provider === 'openrouter' && !rKey) return showError('Enter your OpenRouter API key above.');
+  }
 
   const cacheKey = `${currentFormat}::${prompt}`;
   if (genCache.has(cacheKey)) {
     showOutput(genCache.get(cacheKey));
-    return setStatus('ready', `✓ Cached — ${currentFormat.toUpperCase()} format`);
+    return setStatus('ready', '✓ Cached result');
   }
 
   setLoading(true);
@@ -139,15 +154,12 @@ async function generate() {
   try {
     let json;
     switch (currentFormat) {
-      case 'claude':     json = await generateViaClaude(prompt);     break;
-      case 'openrouter': json = await generateViaOpenRouter(prompt);  break;
-      case 'openai':     json = buildOpenAIJSON(prompt);              break; // local, instant
-      case 'ollama':     json = await generateViaOllama(prompt);      break;
-      case 'custom':     json = await generateViaCustom(prompt);      break;
+      case 'ollama': json = await generateViaOllama(prompt); break;
+      case 'custom': json = await generateViaCustom(prompt); break;
     }
     cacheStore(cacheKey, json);
     showOutput(json);
-    setStatus('ready', `✓ Done — ${currentFormat.toUpperCase()} format`);
+    setStatus('ready', '✓ Done');
   } catch (err) {
     showError(err.message || 'Generation failed. Check your API key and try again.');
     setStatus('error', 'Generation failed');
@@ -156,152 +168,11 @@ async function generate() {
   }
 }
 
-// ── API: Anthropic backbone (Haiku — fast & cheap) ─────────────
-async function generateViaClaude(prompt) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: CLAUDE_BACKBONE,
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildClaudeMsg(prompt) }]
-    })
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.error?.message || `Anthropic error ${res.status}`);
-  }
-  const data = await res.json();
-  return extractJSON(data.content?.[0]?.text || '{}');
-}
-
-// ── API: OpenRouter (uses OR key only — no Anthropic needed!) ──
-const OR_FALLBACKS = [
-  'google/gemma-3-27b-it:free',
-  'deepseek/deepseek-chat-v3-0324:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'mistralai/mistral-7b-instruct:free',
-];
-
-async function orFetch(model, messages) {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openrouterKey}`,
-      'HTTP-Referer': 'https://promptforge.ext',
-      'X-Title': 'PromptForge',
-    },
-    body: JSON.stringify({ model, max_tokens: 1024, messages })
-  });
-  const data = await res.json().catch(() => ({}));
-  // OpenRouter can return errors inside a 200 body too
-  if (!res.ok || data.error) {
-    const msg = data.error?.message || `HTTP ${res.status}`;
-    const isAuthErr = res.status === 401 || /key|auth|creden/i.test(msg);
-    throw Object.assign(new Error(msg), { isAuthErr });
-  }
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Model returned empty response');
-  return extractJSON(content);
-}
-
-// Model types that cannot do chat completions
-const NON_CHAT_PATTERNS = /embed|rerank|classify|whisper|tts|vision-only|encode/i;
-
-async function generateViaOpenRouter(prompt) {
-  const customModel  = $('or-custom-model').value.trim();
-  const primaryModel = customModel || $('or-model').value || OR_FREE_BACKBONE;
-
-  // Reject embedding/non-chat models immediately — they don't generate text
-  if (NON_CHAT_PATTERNS.test(primaryModel)) {
-    const shortName = primaryModel.split('/').pop();
-    throw new Error(
-      `"${shortName}" is not a chat model (looks like an embedding/encode model). ` +
-      `Clear the Custom Model ID field and pick a chat or instruct model from the dropdown.`
-    );
-  }
-
-  const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user',   content: buildOpenRouterMsg(prompt) }
-  ];
-
-  // Try primary model first, then fallbacks on provider errors
-  const queue = [primaryModel, ...OR_FALLBACKS.filter(m => m !== primaryModel)];
-  let lastErr;
-  for (let i = 0; i < queue.length; i++) {
-    const model = queue[i];
-    try {
-      if (i > 0) setStatus('loading', `Retrying with ${model.split('/')[1]}…`);
-      return await orFetch(model, messages);
-    } catch (err) {
-      lastErr = err;
-      if (err.isAuthErr) break; // wrong key — no point retrying
-    }
-  }
-  throw new Error(
-    lastErr?.isAuthErr
-      ? 'Invalid OpenRouter API key. Check ⚙ Settings.'
-      : `All ${queue.length} models failed. Try again later or pick a different model from the dropdown.`
-  );
-}
-
-// ── Custom: use best available backbone ────────────────────────
-async function generateViaCustom(prompt) {
-  if (anthropicKey) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: CLAUDE_BACKBONE, max_tokens: 1024, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: buildCustomMsg(prompt) }] })
-    });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
-    const d = await res.json();
-    return extractJSON(d.content?.[0]?.text || '{}');
-  }
-  // Fallback to OpenRouter free model (with same retry logic)
-  return orFetch(OR_FREE_BACKBONE, [
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user',   content: buildCustomMsg(prompt) }
-  ]);
-}
-
-// ── Local JSON builder for OpenAI tab (no API call — template-based) ──
-function buildOpenAIJSON(prompt) {
-  const sysMsg = $('openai-system').value.trim();
-  // Derive a snake_case task name from the prompt
-  const task = prompt.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 5)
-    .join('_');
-
-  const obj = {
-    task,
-    input_text: `[Provide the ${task.split('_').join(' ')} content here]`,
-    output_format: {
-      result: 'string',
-      summary: 'string',
-    }
-  };
-
-  if (sysMsg) obj.context = sysMsg;
-  return JSON.stringify(obj, null, 2);
-}
-
-// ── Ollama: generate task JSON via local Ollama ─────────────────
+// ── Ollama ──────────────────────────────────────────────────────
 async function generateViaOllama(prompt) {
-  const model  = $('ollama-model').value.trim()     || 'llama3.2';
-  const host   = $('ollama-host').value.trim()      || 'http://localhost:11434';
-  const ctx    = parseInt($('ollama-ctx').value)    || 4096;
-  const temp   = parseFloat($('ollama-temp').value) || 0.8;
-  const system = $('ollama-system').value.trim();
+  const model = $('ollama-model').value.trim() || 'llama3.2';
+  const host  = $('ollama-host').value.trim()  || 'http://localhost:11434';
+  const temp  = parseFloat($('ollama-temp').value) || 0.8;
 
   setStatus('loading', `Generating with ${model}…`);
 
@@ -310,20 +181,17 @@ async function generateViaOllama(prompt) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model,
-        stream: false,
+        model, stream: false,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user',   content: `${TASK_INSTRUCTION}\n\nTask description: "${prompt}"${system ? `\nAdditional context: ${system}` : ''}` }
+          { role: 'user',   content: `${TASK_INSTRUCTION}\n\nTask: "${prompt}"` }
         ],
-        options: { temperature: temp, top_p: 0.9, num_ctx: ctx }
+        options: { temperature: temp, top_p: 0.9, num_ctx: 4096 }
       })
     });
     if (!res.ok) {
       if (res.status === 403) throw new Error(
-        'Ollama blocked the request (CORS). One-time fix:\n' +
-        '1. Run in PowerShell:  setx OLLAMA_ORIGINS "*"\n' +
-        '2. Restart Ollama (close tray icon, reopen)'
+        'Ollama blocked (CORS). Fix: run  setx OLLAMA_ORIGINS "*"  then restart Ollama.'
       );
       if (res.status === 404) throw new Error(
         `Model "${model}" not found. Run:  ollama pull ${model}`
@@ -335,41 +203,87 @@ async function generateViaOllama(prompt) {
     return extractJSON(data.message?.content || '{}');
   } catch (err) {
     if (err instanceof TypeError) throw new Error(
-      `Cannot reach Ollama at ${host}. Make sure it is running: ollama serve`
+      `Cannot reach Ollama at ${host}. Start it with:  ollama serve`
     );
     throw err;
   }
 }
 
-// ── Prompt builders — all ask for task-based JSON ──────────────
-const TASK_INSTRUCTION =
-  'Generate a structured task JSON for this request. ' +
-  'Include a snake_case "task" name, one or more input fields with realistic example content ' +
-  '(not placeholders — write actual sample data that shows what the input looks like), ' +
-  'and an "output_format" object with field names specific to this task and their types. ' +
-  'Return ONLY the JSON object.';
+// ── Custom (Anthropic / OpenAI / OpenRouter) ────────────────────
+async function generateViaCustom(prompt) {
+  const provider = $('custom-provider').value;
+  const msg = buildCustomMsg(prompt);
 
-function buildClaudeMsg(prompt) {
-  const context = $('claude-system').value.trim();
-  return `${TASK_INSTRUCTION}\n\nTask description: "${prompt}"${context ? `\nAdditional context: ${context}` : ''}`;
-}
+  if (provider === 'anthropic') {
+    const key    = $('custom-anthropic-key').value.trim() || anthropicKey;
+    const model  = $('custom-claude-model').value || CLAUDE_BACKBONE;
+    const tokens = parseInt($('custom-claude-tokens').value) || 1024;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: tokens, system: SYSTEM_PROMPT, messages: [{ role: 'user', content: msg }] })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+    const d = await res.json();
+    return extractJSON(d.content?.[0]?.text || '{}');
+  }
 
-function buildOpenRouterMsg(prompt) {
-  const context = $('or-system').value.trim();
-  return `${TASK_INSTRUCTION}\n\nTask description: "${prompt}"${context ? `\nAdditional context: ${context}` : ''}`;
+  if (provider === 'openai') {
+    const key    = $('custom-openai-key').value.trim() || openaiKey;
+    const model  = $('custom-openai-model').value || 'gpt-4o';
+    const tokens = parseInt($('custom-openai-tokens').value) || 1024;
+    const temp   = parseFloat($('custom-openai-temp').value) || 0.7;
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ model, max_tokens: tokens, temperature: temp, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: msg }] })
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+    const d = await res.json();
+    return extractJSON(d.choices?.[0]?.message?.content || '{}');
+  }
+
+  if (provider === 'openrouter') {
+    const key    = $('custom-or-key').value.trim() || openrouterKey;
+    const model  = $('custom-or-model').value || OR_FREE_BACKBONE;
+    const tokens = parseInt($('custom-or-tokens').value) || 1024;
+    const temp   = parseFloat($('custom-or-temp').value) || 0.7;
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: msg }];
+    const queue  = [model, ...OR_FALLBACKS.filter(m => m !== model)];
+    let lastErr;
+    for (let i = 0; i < queue.length; i++) {
+      try {
+        if (i > 0) setStatus('loading', `Retrying with ${queue[i].split('/')[1]}…`);
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://promptforge.ext', 'X-Title': 'PromptForge' },
+          body: JSON.stringify({ model: queue[i], max_tokens: tokens, temperature: temp, messages })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) {
+          const msg2 = data.error?.message || `HTTP ${res.status}`;
+          throw Object.assign(new Error(msg2), { isAuthErr: res.status === 401 || /key|auth/i.test(msg2) });
+        }
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error('Empty response');
+        return extractJSON(content);
+      } catch (err) {
+        lastErr = err;
+        if (err.isAuthErr) break;
+      }
+    }
+    throw new Error(lastErr?.isAuthErr ? 'Invalid OpenRouter API key.' : 'All models failed. Try again.');
+  }
 }
 
 function buildCustomMsg(prompt) {
   const template = $('custom-template').value;
-  const tags     = $('custom-tags').value.trim();
-  const schema   = customSchema || '';
-  const extraHints = {
+  const extras = {
     langchain: ' Structure output_format for a LangChain/LangGraph pipeline.',
     autogen:   ' Structure output_format for an AutoGen multi-agent workflow.',
-    schema:    schema ? ` Use this schema as reference: ${schema}` : '',
     generic:   '',
   };
-  return `${TASK_INSTRUCTION}${extraHints[template] || ''}\n\nTask description: "${prompt}"${tags ? `\nTags/context: ${tags}` : ''}`;
+  return `${TASK_INSTRUCTION}${extras[template] || ''}\n\nTask: "${prompt}"`;
 }
 
 // ── JSON extraction ─────────────────────────────────────────────
@@ -381,7 +295,7 @@ function extractJSON(text) {
   return clean || '{}';
 }
 
-// ── Cache helpers ───────────────────────────────────────────────
+// ── Cache ───────────────────────────────────────────────────────
 function cacheStore(key, value) {
   if (genCache.size >= 10) genCache.delete(genCache.keys().next().value);
   genCache.set(key, value);
@@ -397,28 +311,44 @@ function setLoading(on) {
 
 function showOutput(json) {
   $('outputBox').textContent = json;
+  $('outputBox').classList.remove('meta-mode');
+  $('outputLabel').textContent = 'Structured Output';
+  $('outputDot').classList.remove('meta');
+  $('useAsPromptBtn').style.display = 'none';
+  $('injectBtn').style.display = '';
   $('outputSection').classList.add('visible');
 }
 
-function hideOutput() {
-  $('outputSection').classList.remove('visible');
+function showMetaOutput(text) {
+  $('outputBox').textContent = text;
+  $('outputBox').classList.add('meta-mode');
+  $('outputLabel').textContent = 'Meta Prompt Result';
+  $('outputDot').classList.add('meta');
+  $('useAsPromptBtn').style.display = '';
+  $('injectBtn').style.display = 'none';
+  $('outputSection').classList.add('visible');
 }
 
-function showError(msg) { $('errorMsg').textContent = msg; $('errorMsg').classList.add('visible'); }
-function clearError()   { $('errorMsg').classList.remove('visible'); }
-
+function hideOutput()      { $('outputSection').classList.remove('visible'); }
+function showError(msg)    { $('errorMsg').textContent = msg; $('errorMsg').classList.add('visible'); }
+function clearError()      { $('errorMsg').classList.remove('visible'); }
 function setStatus(type, msg) {
-  const dot = $('statusDot');
-  dot.className = 'status-dot' + (type ? ' ' + type : '');
+  $('statusDot').className = 'status-dot' + (type ? ' ' + type : '');
   $('statusText').textContent = msg;
 }
+function flash(btn, ok, def) { btn.textContent = ok; setTimeout(() => { btn.textContent = def; }, 1500); }
 
-function flash(btn, successText, defaultText) {
-  btn.textContent = successText;
-  setTimeout(() => { btn.textContent = defaultText; }, 1500);
-}
+$('useAsPromptBtn').addEventListener('click', () => {
+  const text = $('outputBox').textContent;
+  if (text) {
+    $('nlPrompt').value = text;
+    hideOutput();
+    $('nlPrompt').focus();
+    setStatus('ready', '✓ Moved to prompt — edit then Generate');
+  }
+});
 
-// ── Copy (standard output) ──────────────────────────────────────
+// ── Copy & Inject ───────────────────────────────────────────────
 $('copyBtn').addEventListener('click', () => {
   navigator.clipboard.writeText($('outputBox').textContent).then(() => {
     $('copyBtn').textContent = '✓ Copied!';
@@ -427,7 +357,6 @@ $('copyBtn').addEventListener('click', () => {
   });
 });
 
-// ── Inject into page ────────────────────────────────────────────
 $('injectBtn').addEventListener('click', async () => {
   const json = $('outputBox').textContent;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -440,4 +369,287 @@ $('injectBtn').addEventListener('click', async () => {
       flash($('injectBtn'), '✓ Injected!', '⬇ Inject');
     }
   });
+});
+
+// ── Meta Prompting ──────────────────────────────────────────────
+const META_PROMPTS = {
+  improve:
+    'You are an expert prompt engineer. Rewrite the user\'s rough prompt to be clearer, ' +
+    'more specific, and better structured for an AI model. ' +
+    'Add missing context, sharpen the intent, and improve phrasing. ' +
+    'Return ONLY the improved prompt text — no labels, no explanation, no markdown.',
+  role:
+    'You are an expert prompt engineer specializing in role-based prompting. ' +
+    'Rewrite the user\'s prompt by giving the AI a vivid expert role and persona that fits the task. ' +
+    'Start with "You are a [specific expert]..." and build out a rich, effective prompt. ' +
+    'Return ONLY the rewritten prompt — no explanation.',
+  cot:
+    'You are an expert prompt engineer specializing in chain-of-thought prompting. ' +
+    'Rewrite the user\'s prompt so it instructs the AI to reason step by step before answering. ' +
+    'Add explicit reasoning scaffolds like "Think step by step:", numbered steps, or "First... Then... Finally...". ' +
+    'Return ONLY the enhanced prompt — no explanation.',
+  constraints:
+    'You are an expert prompt engineer. Rewrite the user\'s prompt to include specific constraints, ' +
+    'rules, boundaries, and requirements that tightly shape the output. ' +
+    'Add format constraints, tone requirements, length limits, and content guardrails as appropriate. ' +
+    'Return ONLY the constrained prompt — no explanation.',
+  system:
+    'You are an expert prompt engineer. Convert the user\'s idea into a complete, ' +
+    'well-structured system prompt for an AI assistant, covering role, capabilities, behavior guidelines, and constraints. ' +
+    'Return ONLY the system prompt text — no explanation.',
+  fewshot:
+    'You are an expert prompt engineer specializing in few-shot prompting. ' +
+    'Rewrite the user\'s prompt to include 2-3 concrete input/output examples that demonstrate the expected behavior. ' +
+    'Format examples as "Input: ... Output: ..." pairs, then end with the actual task instruction. ' +
+    'Return ONLY the few-shot prompt — no explanation.',
+};
+
+async function metaCallRaw(text) {
+  const style     = $('metaStyle')?.value || 'improve';
+  const sysPrompt = META_PROMPTS[style] || META_PROMPTS.improve;
+  const userMsg   = `Apply your prompt engineering expertise to this:\n\n${text}`;
+
+  // If Ollama tab is active, use Ollama for meta prompting
+  if (currentFormat === 'ollama') {
+    const model = $('ollama-model').value.trim() || 'llama3.2';
+    const host  = $('ollama-host').value.trim()  || 'http://localhost:11434';
+    try {
+      const res = await fetch(`${host}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, stream: false,
+          messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }],
+          options: { temperature: 0.7 }
+        })
+      });
+      if (!res.ok) throw new Error(`Ollama error ${res.status}`);
+      const data = await res.json();
+      return (data.message?.content || text).trim();
+    } catch (err) {
+      if (err instanceof TypeError) throw new Error('Cannot reach Ollama. Make sure it is running.');
+      throw err;
+    }
+  }
+
+  // Custom tab: use the selected provider
+  if (currentFormat === 'custom') {
+    const provider = $('custom-provider').value;
+
+    if (provider === 'anthropic') {
+      const key = $('custom-anthropic-key').value.trim() || anthropicKey;
+      if (!key) throw new Error('Enter your Anthropic API key in the Custom tab.');
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: CLAUDE_BACKBONE, max_tokens: 768, system: sysPrompt, messages: [{ role: 'user', content: userMsg }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const d = await res.json();
+      return (d.content?.[0]?.text || text).trim();
+    }
+
+    if (provider === 'openai') {
+      const key = $('custom-openai-key').value.trim() || openaiKey;
+      if (!key) throw new Error('Enter your OpenAI API key in the Custom tab.');
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 768, messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const d = await res.json();
+      return (d.choices?.[0]?.message?.content || text).trim();
+    }
+
+    if (provider === 'openrouter') {
+      const key   = $('custom-or-key').value.trim() || openrouterKey;
+      if (!key) throw new Error('Enter your OpenRouter API key in the Custom tab.');
+      const queue = [OR_FREE_BACKBONE, ...OR_FALLBACKS];
+      let lastErr;
+      for (let i = 0; i < queue.length; i++) {
+        try {
+          if (i > 0) setStatus('loading', `Retrying with ${queue[i].split('/')[1]}…`);
+          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://promptforge.ext', 'X-Title': 'PromptForge' },
+            body: JSON.stringify({ model: queue[i], max_tokens: 768, messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: userMsg }] })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.error) {
+            const m = data.error?.message || `HTTP ${res.status}`;
+            throw Object.assign(new Error(m), { isAuthErr: res.status === 401 || /key|auth/i.test(m) });
+          }
+          const content = data.choices?.[0]?.message?.content;
+          if (!content) throw new Error('Empty response');
+          return content.trim();
+        } catch (err) {
+          lastErr = err;
+          if (err.isAuthErr) break;
+        }
+      }
+      throw new Error(lastErr?.isAuthErr ? 'Invalid OpenRouter API key.' : 'All models failed. Try again.');
+    }
+  }
+
+  throw new Error('Switch to the Custom or Ollama tab and configure a provider to use Meta Prompt.');
+}
+
+$('metaPromptBtn').addEventListener('click', () => enhancePrompt());
+
+async function enhancePrompt(textOverride) {
+  const prompt = textOverride ?? $('nlPrompt').value.trim();
+  if (!prompt) return showError('Enter a prompt to enhance.');
+
+  const btn = $('metaPromptBtn');
+  const origLabel = btn.textContent;
+  btn.textContent = '⏳ Enhancing…';
+  btn.disabled = true;
+  clearError();
+  setStatus('loading', 'Running meta-prompt…');
+
+  try {
+    const enhanced = await metaCallRaw(prompt);
+    showMetaOutput(enhanced);
+    setStatus('ready', '✓ Meta prompt ready — click "→ Use as Prompt" or Generate');
+  } catch (err) {
+    showError(err.message || 'Meta-prompt failed.');
+    setStatus('error', 'Meta-prompt failed');
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+  }
+}
+
+// ── JSON Builder ────────────────────────────────────────────────
+$('builderToggle').addEventListener('click', () => {
+  const builder = $('jsonBuilder');
+  const open = builder.classList.toggle('open');
+  $('builderToggle').classList.toggle('active', open);
+  $('builderToggle').textContent = open ? '{ } Hide Builder' : '{ } JSON Builder';
+  if (open && $('inputRows').children.length === 0) {
+    spawnInputRow();
+    spawnOutputRow();
+  }
+});
+
+$('addInputRowBtn').addEventListener('click', spawnInputRow);
+$('addOutputRowBtn').addEventListener('click', spawnOutputRow);
+$('buildJsonBtn').addEventListener('click', buildFromFields);
+
+function makeTypeSelect() {
+  const sel = document.createElement('select');
+  ['string', 'number', 'boolean', 'array', 'object'].forEach(t => {
+    const o = document.createElement('option');
+    o.value = o.textContent = t;
+    sel.appendChild(o);
+  });
+  return sel;
+}
+
+function makeRemoveBtn(row) {
+  const btn = document.createElement('button');
+  btn.className = 'remove-row-btn';
+  btn.textContent = '×';
+  btn.title = 'Remove field';
+  btn.addEventListener('click', () => row.remove());
+  return btn;
+}
+
+function spawnInputRow() {
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  const nameIn = document.createElement('input');
+  nameIn.type = 'text'; nameIn.placeholder = 'field_name';
+  const exIn = document.createElement('input');
+  exIn.type = 'text'; exIn.placeholder = 'example value';
+  row.append(nameIn, exIn, makeTypeSelect(), makeRemoveBtn(row));
+  $('inputRows').appendChild(row);
+  nameIn.focus();
+}
+
+function spawnOutputRow() {
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  const nameIn = document.createElement('input');
+  nameIn.type = 'text'; nameIn.placeholder = 'output_field';
+  row.append(nameIn, makeTypeSelect(), makeRemoveBtn(row));
+  $('outputRows').appendChild(row);
+  nameIn.focus();
+}
+
+async function buildFromFields() {
+  const inRows  = [...$('inputRows').querySelectorAll('.field-row')];
+  const outRows = [...$('outputRows').querySelectorAll('.field-row')];
+
+  if (!inRows.length && !outRows.length)
+    return showError('Add at least one field in the JSON Builder.');
+
+  const inputHints = [];
+  inRows.forEach(row => {
+    const [nameIn, exIn] = row.querySelectorAll('input');
+    const name = (nameIn?.value || '').trim().replace(/\s+/g, '_');
+    const ex   = exIn?.value.trim();
+    const type = row.querySelector('select')?.value || 'string';
+    if (name) inputHints.push(`${name} (${type}${ex ? `, e.g. "${ex}"` : ''})`);
+  });
+
+  const outputHints = [];
+  outRows.forEach(row => {
+    const nameIn = row.querySelector('input');
+    const typeS  = row.querySelector('select');
+    const name   = (nameIn?.value || '').trim().replace(/\s+/g, '_');
+    if (name) outputHints.push(`${name}: ${typeS?.value || 'string'}`);
+  });
+
+  const base = $('nlPrompt').value.trim() || 'Generate a structured task';
+  let augmented = base;
+  if (inputHints.length)  augmented += `\n\nUse these input fields: ${inputHints.join(', ')}.`;
+  if (outputHints.length) augmented += `\nUse these output_format fields: ${outputHints.join(', ')}.`;
+
+  const original = $('nlPrompt').value;
+  $('nlPrompt').value = augmented;
+  await generate();
+  $('nlPrompt').value = original;
+}
+
+// ── Right-click context menu on prompt textarea ─────────────────
+let savedSel = { start: 0, end: 0, text: '' };
+
+$('nlPrompt').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const ta = $('nlPrompt');
+  savedSel = {
+    start: ta.selectionStart,
+    end:   ta.selectionEnd,
+    text:  ta.value.substring(ta.selectionStart, ta.selectionEnd).trim()
+  };
+  const hasSel = savedSel.text.length > 0;
+  $('ctxSubmit').style.display  = hasSel ? '' : 'none';
+  $('ctxEnhance').style.display = hasSel ? '' : 'none';
+  $('ctxSep').style.display     = hasSel ? '' : 'none';
+
+  const menu = $('ctxMenu');
+  const mw = 180, mh = 120;
+  menu.style.left = Math.min(e.clientX, window.innerWidth  - mw) + 'px';
+  menu.style.top  = Math.min(e.clientY, window.innerHeight - mh) + 'px';
+  menu.classList.add('visible');
+});
+
+document.addEventListener('click',  ()  => $('ctxMenu').classList.remove('visible'));
+document.addEventListener('keydown', e  => { if (e.key === 'Escape') $('ctxMenu').classList.remove('visible'); });
+
+$('ctxSubmit').addEventListener('click', () => {
+  if (savedSel.text) { $('nlPrompt').value = savedSel.text; generate(); }
+});
+
+$('ctxEnhance').addEventListener('click', async () => {
+  if (savedSel.text) await enhancePrompt(savedSel.text);
+});
+
+$('ctxClear').addEventListener('click', () => {
+  $('nlPrompt').value = '';
+  hideOutput();
+  clearError();
+  $('ctxMenu').classList.remove('visible');
 });
